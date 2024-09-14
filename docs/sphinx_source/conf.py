@@ -34,7 +34,7 @@ sys.path.append("/usr/bin/")
 breathe_default_project = "esp-idf-ds3231"
 
 extensions = ['sphinx_copybutton', 'sphinx.ext.todo', 'breathe', 'sphinx_rtd_theme']
-breathe_projects = {"esp-idf-ds3231": "/home/jschwefel/repositories/esp_components/esp-idf-ds3231/docs/xml" }
+breathe_projects = {"esp-idf-ds3231": "../xml" }
 
 breathe_debug_trace_directives = True
 breathe_show_include = False
