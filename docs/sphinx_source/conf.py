@@ -6,14 +6,18 @@
 # -- Project information -----------------------------------------------------
 # https://www.sphinx-doc.org/en/master/usage/configuration.html#project-information
 
-import sys
+import sys, subprocess, os
 
 
 
 project = 'esp-idf-ds3221' 
 copyright = '2024, Jason M. Schwefel'
 author = 'Jason M. Schwefel'
-release = '1.0'
+release = '0.9.0'
+
+read_the_docs_build = os.environ.get('READTHEDOCS', None) == 'True'
+if read_the_docs_build:
+     subprocess.call('cd ../doxygen; doxygen', shell=True)
 
 # -- General configuration ---------------------------------------------------
 # https://www.sphinx-doc.org/en/master/usage/configuration.html#general-configuration
