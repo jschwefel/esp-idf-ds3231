@@ -32,7 +32,7 @@ The things you need before installing the software.
 ## Usage
 
 The code used in the example program:
-```
+```C
     #include <stdio.h>
     #include "esp-idf-ds3231.h"
 
