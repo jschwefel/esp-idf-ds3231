@@ -32,7 +32,7 @@ The things you need before installing the software.
 ## Usage
 
 The code used in the example program:
-
+```
     #include <stdio.h>
     #include "esp-idf-ds3231.h"
 
@@ -46,7 +46,8 @@ The code used in the example program:
           .scl_io_num = GPIO_NUM_5,
           .sda_io_num = GPIO_NUM_4,
           .glitch_ignore_cnt = 7,
-          // The DS3231 **requires** pullup resistors on all of its I/O pins. Note: Some DS3231 boards have pullup resistors as part
+          // The DS3231 **requires** pullup resistors on all of its I/O pins. 
+          // Note: Some DS3231 boards have pullup resistors as part
           // of their design.
           .flags.enable_internal_pullup = true,
        };
@@ -61,3 +62,4 @@ The code used in the example program:
        strftime(strftime_buf, sizeof(strftime_buf), "%c", &timeinfo);
        printf("The current time from the DS3231 RTC moldue is: %s\n", strftime_buf);
     }
+```
