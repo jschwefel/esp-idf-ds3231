@@ -1,5 +1,3 @@
-# !!!! DO NOT USE YET !!!!
-
 # esp-idf-ds3231
 
 An esp-idf component for the Analog Devices (Maxim Integrated) DS3231
@@ -12,6 +10,9 @@ comoment, including alarm interrupt functionality.
 
 This my first fully documented and shared open source project. I welcome
 comments, suggestions and corrections.
+
+The areas I could use help in are the documentation generation and
+configurion on readthedics.io.
 
 <figure>
 <img src="docs/circuit_image.png" alt="docs/circuit_image.png" />
@@ -38,7 +39,8 @@ The code used in the example program:
 
     void app_main(void) {
        // Allocte memory for the pointer of i2c_master_bus_handle_t
-       i2c_master_bus_handle_t* bus_handle = (i2c_master_bus_handle_t*)malloc(sizeof(i2c_master_bus_handle_t));
+       i2c_master_bus_handle_t* bus_handle = 
+            (i2c_master_bus_handle_t*)malloc(sizeof(i2c_master_bus_handle_t));
        // Create the i2c_master_bus_config_t struct and assign values.
        i2c_master_bus_config_t i2c_mst_config = {
           .clk_source = I2C_CLK_SRC_DEFAULT,

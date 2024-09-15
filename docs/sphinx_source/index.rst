@@ -11,6 +11,11 @@ esp-idf-ds3231 is a component for the esp-idf. The component abstracts all the f
 The component is 100% feature complete. All time keeping, alarm and control function are part of the comoment, 
 including alarm interrupt functionality.
 
+This my first fully documented and shared open source project. I welcome
+comments, suggestions and corrections.
+
+The areas I could use help in are the documentation generation and
+configurion on readthedics.io.
 
 Usage
 =====

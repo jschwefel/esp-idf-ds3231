@@ -31,9 +31,8 @@
 #include "soc/clk_tree_defs.h"
 #include "esp_debug_helpers.h"
 
-#define CONFIG_I2C_ENABLE_DEBUG_LOG 1
-#define RTC_I2C_ADDRESS             0b1101000
-#define RTC_DATA_LENGTH             0x13
+#define RTC_I2C_ADDRESS 0x68
+#define RTC_DATA_LENGTH 0x13
 
 enum flag_bitmask_e {
     RTC_BITMASK_OSCILLATOR_ENABLE = 0b10000000,

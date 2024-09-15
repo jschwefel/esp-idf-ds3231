@@ -13,7 +13,7 @@ import sys, subprocess, os
 project = 'esp-idf-ds3221' 
 copyright = '2024, Jason M. Schwefel'
 author = 'Jason M. Schwefel'
-release = '0.9.0'
+release = '0.9.10'
 
 read_the_docs_build = os.environ.get('READTHEDOCS', None) == 'True'
 if read_the_docs_build:
