@@ -48,7 +48,7 @@ enum flag_bitmask_e {
 };
 
 typedef struct {
-    i2c_master_dev_handle_t* rtc_handle;
+    rtc_handle_t* rtc_handle;
     gpio_isr_t isr_handler;
     void* params;
 } rtc_alarm_isr_t;
@@ -156,9 +156,9 @@ static TaskHandle_t isr_task_handle = NULL;
 
 uint8_t convert_to_bcd(uint8_t value);
 static const char* byte_to_binary(int x);
-esp_err_t set_flag(i2c_master_dev_handle_t* rtc_handle, bool setEnabled, bool isUpper, enum flag_bitmask_e bitmask);
+esp_err_t set_flag(rtc_handle_t* rtc_handle, bool setEnabled, bool isUpper, enum flag_bitmask_e bitmask);
 
-i2c_master_dev_handle_t* ds3231_init_full(gpio_num_t SCL, gpio_num_t SDA) {
+rtc_handle_t* ds3231_init_full(gpio_num_t SCL, gpio_num_t SDA) {
     esp_err_t err;
     i2c_master_bus_handle_t* bus_handle = (i2c_master_bus_handle_t*)malloc(sizeof(i2c_master_bus_handle_t));
     if (bus_handle == NULL) {
@@ -184,14 +184,14 @@ i2c_master_dev_handle_t* ds3231_init_full(gpio_num_t SCL, gpio_num_t SDA) {
     return ds3231_init(bus_handle);
 }
 
-i2c_master_dev_handle_t* ds3231_init(i2c_master_bus_handle_t* bus_handle) {
+rtc_handle_t* ds3231_init(i2c_master_bus_handle_t* bus_handle) {
     i2c_device_config_t dev_cfg_read = {
         .dev_addr_length = I2C_ADDR_BIT_LEN_7,
         .device_address = RTC_I2C_ADDRESS,
         .scl_speed_hz = 200000,
     };
 
-    i2c_master_dev_handle_t* rtc_handle = (i2c_master_dev_handle_t*)malloc(sizeof(i2c_master_dev_handle_t));
+    rtc_handle_t* rtc_handle = (rtc_handle_t*)malloc(sizeof(rtc_handle_t));
     if (rtc_handle == NULL) {
         esp_backtrace_print(6);
         esp_system_abort("Fatal Error. Unable to allocate memory for 'rtc_handle'");
@@ -209,7 +209,7 @@ i2c_master_dev_handle_t* ds3231_init(i2c_master_bus_handle_t* bus_handle) {
     return rtc_handle;
 }
 
-uint8_t* ds3231_get_registers_raw(i2c_master_dev_handle_t* rtc_handle) {
+uint8_t* ds3231_get_registers_raw(rtc_handle_t* rtc_handle) {
     ESP_LOGV(TAG, "Entering 'read_registers' function");
     uint8_t* data_rd = (uint8_t*)malloc(RTC_DATA_LENGTH);
     if (data_rd == NULL) {
@@ -239,11 +239,11 @@ uint8_t* ds3231_get_registers_raw(i2c_master_dev_handle_t* rtc_handle) {
     return data_rd;
 }
 
-// rtc_registers_t* ds3231_get_registers(i2c_master_dev_handle_t* rtc_handle) {
+// rtc_registers_t* ds3231_get_registers(rtc_handle_t* rtc_handle) {
 //     return (rtc_registers_t*)ds3231_get_registers_raw(rtc_handle);
 // }
 
-esp_err_t ds3231_register_set(i2c_master_dev_handle_t* rtc_handle, enum rtc_register_e rtc_register, uint8_t bit_pattern) {
+esp_err_t ds3231_register_set(rtc_handle_t* rtc_handle, enum rtc_register_e rtc_register, uint8_t bit_pattern) {
     uint8_t* registers = (uint8_t*)calloc(1, sizeof(uint8_t) * RTC_DATA_LENGTH);
     if (registers == NULL) {
         esp_backtrace_print(6);
@@ -258,7 +258,7 @@ esp_err_t ds3231_register_set(i2c_master_dev_handle_t* rtc_handle, enum rtc_regi
     return err;
 }
 
-esp_err_t ds3231_send_byte_raw(i2c_master_dev_handle_t* rtc_handle, enum rtc_register_e rtc_register, uint8_t rtc_data) {
+esp_err_t ds3231_send_byte_raw(rtc_handle_t* rtc_handle, enum rtc_register_e rtc_register, uint8_t rtc_data) {
     const uint8_t data_wr[2] = { rtc_register, rtc_data };
     ESP_LOGD(TAG, "Transmitting %02Xh 0x%02x to DS3231 RTC moodule.", data_wr[0], data_wr[1]);
     esp_err_t err = i2c_master_transmit(*rtc_handle, data_wr, 2, RTC_I2C_TIMEOUT);
@@ -271,7 +271,7 @@ esp_err_t ds3231_send_byte_raw(i2c_master_dev_handle_t* rtc_handle, enum rtc_reg
     return err;
 }
 
-esp_err_t ds3231_set_registers_raw(i2c_master_dev_handle_t* rtc_handle, uint8_t* rtc_data, size_t count) {
+esp_err_t ds3231_set_registers_raw(rtc_handle_t* rtc_handle, uint8_t* rtc_data, size_t count) {
     esp_err_t err = i2c_master_transmit(*rtc_handle, rtc_data, count, RTC_I2C_TIMEOUT);
     if (err != ESP_OK) {
         ESP_LOGE(TAG, "An error occured duing write.\n Error: %s", esp_err_to_name(err));
@@ -282,7 +282,7 @@ esp_err_t ds3231_set_registers_raw(i2c_master_dev_handle_t* rtc_handle, uint8_t*
     return err;
 }
 
-esp_err_t ds3231_time_tm_set(i2c_master_dev_handle_t* rtc_handle, struct tm time) {
+esp_err_t ds3231_time_tm_set(rtc_handle_t* rtc_handle, struct tm time) {
     size_t time_length = 0x08;
     uint8_t time_data[time_length];
 
@@ -308,7 +308,7 @@ esp_err_t ds3231_time_tm_set(i2c_master_dev_handle_t* rtc_handle, struct tm time
     return err;
 }
 
-esp_err_t ds3231_time_unix_set(i2c_master_dev_handle_t* rtc_handle, long unix_time) {
+esp_err_t ds3231_time_unix_set(rtc_handle_t* rtc_handle, long unix_time) {
     time_t time = unix_time;
     esp_err_t err = ds3231_time_time_t_set(rtc_handle, time);
     if (err != ESP_OK) {
@@ -317,7 +317,7 @@ esp_err_t ds3231_time_unix_set(i2c_master_dev_handle_t* rtc_handle, long unix_ti
     return err;
 }
 
-esp_err_t ds3231_time_time_t_set(i2c_master_dev_handle_t* rtc_handle, time_t time) {
+esp_err_t ds3231_time_time_t_set(rtc_handle_t* rtc_handle, time_t time) {
     struct tm* tm = gmtime(&time);
     esp_err_t err = ds3231_time_tm_set(rtc_handle, *tm);
     if (err != ESP_OK) {
@@ -326,13 +326,13 @@ esp_err_t ds3231_time_time_t_set(i2c_master_dev_handle_t* rtc_handle, time_t tim
     return err;
 }
 
-int ds3231_set_esp_with_rtc(i2c_master_dev_handle_t* rtc_handle) {
+int ds3231_set_esp_with_rtc(rtc_handle_t* rtc_handle) {
     struct timeval rtc_time;
     rtc_time.tv_sec = ds3231_time_unix_get(rtc_handle);
     return settimeofday(&rtc_time, NULL);
 }
 
-int8_t ds3231_time_minutes_or_seconds_get(i2c_master_dev_handle_t* rtc_handle, enum rtc_register_e rtc_register) {
+int8_t ds3231_time_minutes_or_seconds_get(rtc_handle_t* rtc_handle, enum rtc_register_e rtc_register) {
     uint8_t* data_rd = (uint8_t*)malloc(RTC_DATA_LENGTH);
     if (data_rd == NULL) {
         esp_backtrace_print(6);
@@ -348,7 +348,7 @@ int8_t ds3231_time_minutes_or_seconds_get(i2c_master_dev_handle_t* rtc_handle, e
     return -1;
 }
 
-int8_t ds3231_time_hours_get(i2c_master_dev_handle_t* rtc_handle, enum rtc_register_e rtc_register) {
+int8_t ds3231_time_hours_get(rtc_handle_t* rtc_handle, enum rtc_register_e rtc_register) {
     uint8_t* data_rd = (uint8_t*)malloc(RTC_DATA_LENGTH);
     if (data_rd == NULL) {
         esp_backtrace_print(6);
@@ -364,7 +364,7 @@ int8_t ds3231_time_hours_get(i2c_master_dev_handle_t* rtc_handle, enum rtc_regis
     return -1;
 }
 
-int8_t ds3231_time_day_of_week_get(i2c_master_dev_handle_t* rtc_handle, enum rtc_register_e rtc_register) {
+int8_t ds3231_time_day_of_week_get(rtc_handle_t* rtc_handle, enum rtc_register_e rtc_register) {
     uint8_t* data_rd = (uint8_t*)malloc(RTC_DATA_LENGTH);
     if (data_rd == NULL) {
         esp_backtrace_print(6);
@@ -387,7 +387,7 @@ int8_t ds3231_time_day_of_week_get(i2c_master_dev_handle_t* rtc_handle, enum rtc
     return -1;
 }
 
-int8_t ds3231_time_date_get(i2c_master_dev_handle_t* rtc_handle, enum rtc_register_e rtc_register) {
+int8_t ds3231_time_date_get(rtc_handle_t* rtc_handle, enum rtc_register_e rtc_register) {
     uint8_t* data_rd = (uint8_t*)malloc(RTC_DATA_LENGTH);
     if (data_rd == NULL) {
         esp_backtrace_print(6);
@@ -408,7 +408,7 @@ int8_t ds3231_time_date_get(i2c_master_dev_handle_t* rtc_handle, enum rtc_regist
     return -1;
 }
 
-int8_t ds3231_time_month_get(i2c_master_dev_handle_t* rtc_handle) {
+int8_t ds3231_time_month_get(rtc_handle_t* rtc_handle) {
     uint8_t* data_rd = (uint8_t*)malloc(RTC_DATA_LENGTH);
     if (data_rd == NULL) {
         esp_backtrace_print(6);
@@ -430,7 +430,7 @@ int8_t ds3231_time_month_get(i2c_master_dev_handle_t* rtc_handle) {
     return -1;
 }
 
-int16_t ds3231_time_year_get(i2c_master_dev_handle_t* rtc_handle) {
+int16_t ds3231_time_year_get(rtc_handle_t* rtc_handle) {
     uint8_t* data_rd = (uint8_t*)malloc(RTC_DATA_LENGTH);
     if (data_rd == NULL) {
         esp_backtrace_print(6);
@@ -447,7 +447,7 @@ int16_t ds3231_time_year_get(i2c_master_dev_handle_t* rtc_handle) {
     return -1;
 }
 
-int8_t ds3231_aging_offset_get(i2c_master_dev_handle_t* rtc_handle) {
+int8_t ds3231_aging_offset_get(rtc_handle_t* rtc_handle) {
     uint8_t* data_rd = (uint8_t*)malloc(RTC_DATA_LENGTH);
     if (data_rd == NULL) {
         esp_backtrace_print(6);
@@ -463,7 +463,7 @@ int8_t ds3231_aging_offset_get(i2c_master_dev_handle_t* rtc_handle) {
     return -1;
 }
 
-float ds3231_temperature_get(i2c_master_dev_handle_t* rtc_handle) {
+float ds3231_temperature_get(rtc_handle_t* rtc_handle) {
     uint8_t* data_rd = (uint8_t*)malloc(RTC_DATA_LENGTH);
     if (data_rd == NULL) {
         esp_backtrace_print(6);
@@ -481,7 +481,7 @@ float ds3231_temperature_get(i2c_master_dev_handle_t* rtc_handle) {
     return -9999;
 }
 
-rtc_control_status_t* ds3231_control_status_flags_get(i2c_master_dev_handle_t* rtc_handle) {
+rtc_control_status_t* ds3231_control_status_flags_get(rtc_handle_t* rtc_handle) {
     uint8_t* data_rd = (uint8_t*)malloc(RTC_DATA_LENGTH);
     if (data_rd == NULL) {
         esp_backtrace_print(6);
@@ -500,7 +500,7 @@ rtc_control_status_t* ds3231_control_status_flags_get(i2c_master_dev_handle_t* r
     return NULL;
 }
 
-struct tm* ds3231_time_get(i2c_master_dev_handle_t* rtc_handle) {
+struct tm* ds3231_time_get(rtc_handle_t* rtc_handle) {
     struct tm* rtcTime_s = (struct tm*)calloc(1, sizeof(struct tm));
     if (rtcTime_s == NULL) {
         esp_backtrace_print(6);
@@ -517,7 +517,7 @@ struct tm* ds3231_time_get(i2c_master_dev_handle_t* rtc_handle) {
     return rtcTime_s;
 }
 
-time_t ds3231_time_unix_get(i2c_master_dev_handle_t* rtc_handle) {
+time_t ds3231_time_unix_get(rtc_handle_t* rtc_handle) {
     struct tm* rtcTime_s = ds3231_time_get(rtc_handle);
     time_t rtcTime = mktime(rtcTime_s);
     free(rtcTime_s);
@@ -525,7 +525,7 @@ time_t ds3231_time_unix_get(i2c_master_dev_handle_t* rtc_handle) {
 }
 
 // TODO: Combine 'ds3231_alarm1_time_get' and 'ds3231_alarm1_time_get'
-struct tm* ds3231_alarm1_time_get(i2c_master_dev_handle_t* rtc_handle) {
+struct tm* ds3231_alarm1_time_get(rtc_handle_t* rtc_handle) {
     struct tm* rtcTime_s = (struct tm*)calloc(1, sizeof(struct tm));
     if (rtcTime_s == NULL) {
         esp_backtrace_print(6);
@@ -547,7 +547,7 @@ struct tm* ds3231_alarm1_time_get(i2c_master_dev_handle_t* rtc_handle) {
     return rtcTime_s;
 }
 
-struct tm* ds3231_alarm2_time_get(i2c_master_dev_handle_t* rtc_handle) {
+struct tm* ds3231_alarm2_time_get(rtc_handle_t* rtc_handle) {
     struct tm* rtcTime_s = (struct tm*)calloc(1, sizeof(struct tm));
     if (rtcTime_s == NULL) {
         esp_backtrace_print(6);
@@ -568,7 +568,7 @@ struct tm* ds3231_alarm2_time_get(i2c_master_dev_handle_t* rtc_handle) {
     return rtcTime_s;
 }
 
-void ds3231_debug_print_data(i2c_master_dev_handle_t* rtc_handle) {
+void ds3231_debug_print_data(rtc_handle_t* rtc_handle) {
     // Used to reset the register pointer.
     uint8_t* pointer = ds3231_get_registers_raw(rtc_handle);
     free(pointer);
@@ -616,7 +616,7 @@ void ds3231_debug_print_data(i2c_master_dev_handle_t* rtc_handle) {
     free(alarm2_time);
 }
 
-esp_err_t set_alarm(i2c_master_dev_handle_t* rtc_handle, bool isAlarm1, int8_t dom, int8_t dow, int8_t hr, int8_t min, int8_t sec) {
+esp_err_t set_alarm(rtc_handle_t* rtc_handle, bool isAlarm1, int8_t dom, int8_t dow, int8_t hr, int8_t min, int8_t sec) {
     size_t alarm_length;
     int8_t alarm_register;
     if (isAlarm1) {
@@ -648,25 +648,23 @@ esp_err_t set_alarm(i2c_master_dev_handle_t* rtc_handle, bool isAlarm1, int8_t d
     return err;
 }
 
-esp_err_t ds3231_alarm1_day_of_week_set(i2c_master_dev_handle_t* rtc_handle, enum rtc_day_of_week_e dow, int8_t hour,
-                                        int8_t minutes, int8_t seconds) {
+esp_err_t ds3231_alarm1_day_of_week_set(rtc_handle_t* rtc_handle, enum rtc_day_of_week_e dow, int8_t hour, int8_t minutes,
+                                        int8_t seconds) {
     esp_err_t err = set_alarm(rtc_handle, true, -1, dow, hour, minutes, seconds);
     return err;
 }
 
-esp_err_t ds3231_alarm1_day_of_month_set(i2c_master_dev_handle_t* rtc_handle, int8_t day, int8_t hour, int8_t minutes,
-                                         int8_t seconds) {
+esp_err_t ds3231_alarm1_day_of_month_set(rtc_handle_t* rtc_handle, int8_t day, int8_t hour, int8_t minutes, int8_t seconds) {
     esp_err_t err = set_alarm(rtc_handle, true, day, -1, hour, minutes, seconds);
     return err;
 }
 
-esp_err_t ds3231_alarm2_day_of_week_set(i2c_master_dev_handle_t* rtc_handle, enum rtc_day_of_week_e dow, int8_t hour,
-                                        int8_t minutes) {
+esp_err_t ds3231_alarm2_day_of_week_set(rtc_handle_t* rtc_handle, enum rtc_day_of_week_e dow, int8_t hour, int8_t minutes) {
     esp_err_t err = set_alarm(rtc_handle, false, -1, dow, hour, minutes, -1);
     return err;
 }
 
-esp_err_t ds3231_alarm2_day_of_month_set(i2c_master_dev_handle_t* rtc_handle, int8_t day, int8_t hour, int8_t minutes) {
+esp_err_t ds3231_alarm2_day_of_month_set(rtc_handle_t* rtc_handle, int8_t day, int8_t hour, int8_t minutes) {
     esp_err_t err = set_alarm(rtc_handle, false, day, -1, hour, minutes, -1);
     return err;
 }
@@ -682,7 +680,7 @@ static const char* byte_to_binary(int x) {
     return b;
 }
 
-esp_err_t set_flag(i2c_master_dev_handle_t* rtc_handle, bool setEnabled, bool isUpper, enum flag_bitmask_e bitmask) {
+esp_err_t set_flag(rtc_handle_t* rtc_handle, bool setEnabled, bool isUpper, enum flag_bitmask_e bitmask) {
     uint8_t* data_rd = (uint8_t*)malloc(RTC_DATA_LENGTH);
     if (data_rd == NULL) {
         esp_backtrace_print(6);
@@ -725,40 +723,40 @@ esp_err_t set_flag(i2c_master_dev_handle_t* rtc_handle, bool setEnabled, bool is
     return err;
 }
 
-bool ds3231_enable_oscillator_flag_get(i2c_master_dev_handle_t* rtc_handle) {
+bool ds3231_enable_oscillator_flag_get(rtc_handle_t* rtc_handle) {
     rtc_control_status_t* csr = ds3231_control_status_flags_get(rtc_handle);
     return (csr->enable_oscillator);
 }
 
-esp_err_t ds3231_enable_oscillator_flag_set(i2c_master_dev_handle_t* rtc_handle, bool isEnabled) {
+esp_err_t ds3231_enable_oscillator_flag_set(rtc_handle_t* rtc_handle, bool isEnabled) {
     return set_flag(rtc_handle, !isEnabled, true, RTC_BITMASK_OSCILLATOR_ENABLE);
 }
 
-bool ds3231_battery_backed_square_wave_flag_get(i2c_master_dev_handle_t* rtc_handle) {
+bool ds3231_battery_backed_square_wave_flag_get(rtc_handle_t* rtc_handle) {
     rtc_control_status_t* csr = ds3231_control_status_flags_get(rtc_handle);
     return csr->battery_square;
 }
 
-esp_err_t ds3231_battery_backed_square_wave_flag_set(i2c_master_dev_handle_t* rtc_handle, bool isEnabled) {
+esp_err_t ds3231_battery_backed_square_wave_flag_set(rtc_handle_t* rtc_handle, bool isEnabled) {
     return set_flag(rtc_handle, isEnabled, true, RTC_BITMASK_BATTERY_BACKED);
 }
 
-bool ds3231_convert_temp_flag_get(i2c_master_dev_handle_t* rtc_handle) {
+bool ds3231_convert_temp_flag_get(rtc_handle_t* rtc_handle) {
     rtc_control_status_t* csr = ds3231_control_status_flags_get(rtc_handle);
     return csr->convert_temp;
 }
 
-esp_err_t ds3231_convert_temp_flag_set(i2c_master_dev_handle_t* rtc_handle, bool isEnabled) {
+esp_err_t ds3231_convert_temp_flag_set(rtc_handle_t* rtc_handle, bool isEnabled) {
     return set_flag(rtc_handle, isEnabled, true, RTC_BITMASK_CONVERT_TEMPERATURE);
 }
 
-enum rtc_square_wave_freq_e ds3231_square_wave_freq_get(i2c_master_dev_handle_t* rtc_handle) {
+enum rtc_square_wave_freq_e ds3231_square_wave_freq_get(rtc_handle_t* rtc_handle) {
     rtc_control_status_t* csr = ds3231_control_status_flags_get(rtc_handle);
     return csr->square_freq;
 }
 
 // TODO I think this could be better. Works for now.
-esp_err_t ds3231_square_wave_freq_set(i2c_master_dev_handle_t* rtc_handle, enum rtc_square_wave_freq_e frequency) {
+esp_err_t ds3231_square_wave_freq_set(rtc_handle_t* rtc_handle, enum rtc_square_wave_freq_e frequency) {
     typedef union {
         uint8_t data;
         struct {
@@ -792,87 +790,87 @@ esp_err_t ds3231_square_wave_freq_set(i2c_master_dev_handle_t* rtc_handle, enum 
     return err;
 }
 
-enum rtc_intr_sqr_e ds3231_interrupt_square_wave_control_flag_get(i2c_master_dev_handle_t* rtc_handle) {
+enum rtc_intr_sqr_e ds3231_interrupt_square_wave_control_flag_get(rtc_handle_t* rtc_handle) {
     rtc_control_status_t* csr = ds3231_control_status_flags_get(rtc_handle);
     bool result = csr->interrup_control;
     free(csr);
     return result;
 }
 
-esp_err_t ds3231_interrupt_square_wave_control_flag_set(i2c_master_dev_handle_t* rtc_handle, enum rtc_intr_sqr_e isEnabled) {
+esp_err_t ds3231_interrupt_square_wave_control_flag_set(rtc_handle_t* rtc_handle, enum rtc_intr_sqr_e isEnabled) {
     return set_flag(rtc_handle, isEnabled, true, RTC_BITMASK_INTERRUPT_CONTROL);
 }
 
-bool ds3231_alarm2_enable_flag_get(i2c_master_dev_handle_t* rtc_handle) {
+bool ds3231_alarm2_enable_flag_get(rtc_handle_t* rtc_handle) {
     rtc_control_status_t* csr = ds3231_control_status_flags_get(rtc_handle);
     bool result = csr->alarm2_enable;
     free(csr);
     return result;
 }
 
-esp_err_t ds3231_alarm2_enable_flag_set(i2c_master_dev_handle_t* rtc_handle, bool isEnabled) {
+esp_err_t ds3231_alarm2_enable_flag_set(rtc_handle_t* rtc_handle, bool isEnabled) {
     return set_flag(rtc_handle, isEnabled, true, RTC_BITMASK_ALARM2_ENABLE_FIRED);
 }
 
-bool ds3231_alarm1_enable_flag_get(i2c_master_dev_handle_t* rtc_handle) {
+bool ds3231_alarm1_enable_flag_get(rtc_handle_t* rtc_handle) {
     rtc_control_status_t* csr = ds3231_control_status_flags_get(rtc_handle);
     bool result = csr->alarm1_enable;
     free(csr);
     return result;
 }
 
-esp_err_t ds3231_alarm1_enable_flag_set(i2c_master_dev_handle_t* rtc_handle, bool isEnabled) {
+esp_err_t ds3231_alarm1_enable_flag_set(rtc_handle_t* rtc_handle, bool isEnabled) {
     return set_flag(rtc_handle, isEnabled, true, RTC_BITMASK_ALARM1_ENABLE_FIRED);
 }
 
-bool ds3231_get_oscillator_stop_flag(i2c_master_dev_handle_t* rtc_handle) {
+bool ds3231_get_oscillator_stop_flag(rtc_handle_t* rtc_handle) {
     rtc_control_status_t* csr = ds3231_control_status_flags_get(rtc_handle);
     bool result = csr->oscillaror_stop_flag;
     free(csr);
     return result;
 }
 
-esp_err_t ds3231_oscillator_stop_flag_reset(i2c_master_dev_handle_t* rtc_handle) {
+esp_err_t ds3231_oscillator_stop_flag_reset(rtc_handle_t* rtc_handle) {
     return set_flag(rtc_handle, false, false, RTC_BITMASK_OSCILLATOR_STOP);
 }
 
-bool ds3231_32kHz_out_enable_flag_get(i2c_master_dev_handle_t* rtc_handle) {
+bool ds3231_32kHz_out_enable_flag_get(rtc_handle_t* rtc_handle) {
     rtc_control_status_t* csr = ds3231_control_status_flags_get(rtc_handle);
     bool result = csr->enable_32kHz_out;
     free(csr);
     return result;
 }
 
-esp_err_t ds3231_32kHz_out_enable_flag_set(i2c_master_dev_handle_t* rtc_handle, bool isEnabled) {
+esp_err_t ds3231_32kHz_out_enable_flag_set(rtc_handle_t* rtc_handle, bool isEnabled) {
     return set_flag(rtc_handle, isEnabled, false, RTC_BITMASK_32KHZ_ENABLE);
 }
 
-bool ds3231_busy_flag_get(i2c_master_dev_handle_t* rtc_handle) {
+bool ds3231_busy_flag_get(rtc_handle_t* rtc_handle) {
     rtc_control_status_t* csr = ds3231_control_status_flags_get(rtc_handle);
     bool result = csr->busy_flag;
     free(csr);
     return result;
 }
 
-bool ds3231_alarm2_fired_flag_get(i2c_master_dev_handle_t* rtc_handle) {
+bool ds3231_alarm2_fired_flag_get(rtc_handle_t* rtc_handle) {
     rtc_control_status_t* csr = ds3231_control_status_flags_get(rtc_handle);
     bool result = csr->alarm2_flag;
     free(csr);
     return result;
 }
 
-esp_err_t ds3231_alarm2_fired_flag_reset(i2c_master_dev_handle_t* rtc_handle) {
+esp_err_t ds3231_alarm2_fired_flag_reset(rtc_handle_t* rtc_handle) {
     return set_flag(rtc_handle, false, false, RTC_BITMASK_ALARM2_ENABLE_FIRED);
 }
 
-bool ds3231_alarm1_fired_flag_get(i2c_master_dev_handle_t* rtc_handle) {
+bool ds3231_alarm1_fired_flag_get(rtc_handle_t* rtc_handle) {
     rtc_control_status_t* csr = ds3231_control_status_flags_get(rtc_handle);
     bool result = csr->alarm1_flag;
     free(csr);
     return result;
 }
 
-esp_err_t ds3231_alarm1_fired_flag_reset(i2c_master_dev_handle_t* rtc_handle) {
+esp_err_t ds3231_alarm1_fired_flag_reset(rtc_handle_t* rtc_handle) {
     return set_flag(rtc_handle, false, false, RTC_BITMASK_ALARM1_ENABLE_FIRED);
 }
 
@@ -885,7 +883,7 @@ uint8_t convert_to_bcd(uint8_t value) {
     return tens | ones;
 }
 
-enum rtc_alarm_rate_e get_alarm_rate(i2c_master_dev_handle_t* rtc_handle, uint8_t alarm_number) {
+enum rtc_alarm_rate_e get_alarm_rate(rtc_handle_t* rtc_handle, uint8_t alarm_number) {
     uint8_t* data_rd = (uint8_t*)malloc(RTC_DATA_LENGTH);
     if (data_rd == NULL) {
         esp_backtrace_print(6);
@@ -913,7 +911,7 @@ enum rtc_alarm_rate_e get_alarm_rate(i2c_master_dev_handle_t* rtc_handle, uint8_
     return RTC_ALARM_MATCH_INVALID;
 }
 
-esp_err_t set_alarm_rate(i2c_master_dev_handle_t* rtc_handle, uint8_t alarm_number, enum rtc_alarm_rate_e alarm_rate) {
+esp_err_t set_alarm_rate(rtc_handle_t* rtc_handle, uint8_t alarm_number, enum rtc_alarm_rate_e alarm_rate) {
     uint8_t* data_rd = (uint8_t*)malloc(RTC_DATA_LENGTH);
     if (data_rd == NULL) {
         esp_backtrace_print(6);
@@ -941,19 +939,19 @@ esp_err_t set_alarm_rate(i2c_master_dev_handle_t* rtc_handle, uint8_t alarm_numb
     return err;
 }
 
-esp_err_t ds3231_alarm1_rate_set(i2c_master_dev_handle_t* rtc_handle, enum rtc_alarm_rate_e alarm_rate) {
+esp_err_t ds3231_alarm1_rate_set(rtc_handle_t* rtc_handle, enum rtc_alarm_rate_e alarm_rate) {
     return set_alarm_rate(rtc_handle, 1, alarm_rate);
 }
 
-esp_err_t ds3231_alarm2_rate_set(i2c_master_dev_handle_t* rtc_handle, enum rtc_alarm_rate_e alarm_rate) {
+esp_err_t ds3231_alarm2_rate_set(rtc_handle_t* rtc_handle, enum rtc_alarm_rate_e alarm_rate) {
     return set_alarm_rate(rtc_handle, 2, alarm_rate);
 }
 
-enum rtc_alarm_rate_e ds3231_alarm1_rate_get(i2c_master_dev_handle_t* rtc_handle) {
+enum rtc_alarm_rate_e ds3231_alarm1_rate_get(rtc_handle_t* rtc_handle) {
     return get_alarm_rate(rtc_handle, 1);
 }
 
-enum rtc_alarm_rate_e ds3231_alarm2_rate_get(i2c_master_dev_handle_t* rtc_handle) {
+enum rtc_alarm_rate_e ds3231_alarm2_rate_get(rtc_handle_t* rtc_handle) {
     return get_alarm_rate(rtc_handle, 2);
 }
 
@@ -986,11 +984,11 @@ static void gpio_task_example(void* arg) {
     free(isr);
 }
 
-esp_err_t ds3231_alarm_isr_delete(i2c_master_dev_handle_t* rtc_handle, gpio_num_t INT) {
+esp_err_t ds3231_alarm_isr_delete(rtc_handle_t* rtc_handle, gpio_num_t INT) {
     vTaskDelete(isr_task_handle);
     return gpio_isr_handler_remove(INT);
 }
-esp_err_t ds3231_alarm_isr_create(i2c_master_dev_handle_t* rtc_handle, gpio_num_t INT, gpio_isr_t isr, void* params) {
+esp_err_t ds3231_alarm_isr_create(rtc_handle_t* rtc_handle, gpio_num_t INT, gpio_isr_t isr, void* params) {
     // Configure INT pin on ESP
 
     gpio_config_t interrupt_pin_enable = { .pull_down_en = 0,
@@ -1029,7 +1027,7 @@ esp_err_t ds3231_alarm_isr_create(i2c_master_dev_handle_t* rtc_handle, gpio_num_
     return err;
 }
 
-void ds3231_debug_test_set(i2c_master_dev_handle_t* rtc_handle) {
+void ds3231_debug_test_set(rtc_handle_t* rtc_handle) {
     ESP_LOGI(TAG, "The Batter Backed Square Ware flag is set to: %s",
              ds3231_battery_backed_square_wave_flag_get(rtc_handle) ? "True" : "False");
     ds3231_battery_backed_square_wave_flag_set(rtc_handle, true);
