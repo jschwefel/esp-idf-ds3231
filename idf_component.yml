@@ -14,9 +14,6 @@ repository: "https://github.com/jschwefel/esp-idf-ds3231"
 documentation: "https://esp-idf-ds3231.readthedocs.io/en/latest/"
 issues: "https://github.com/jschwefel/esp-idf-ds3231"
 
-examples:
-  - path: examples/ds3231_example
-
 tags:
   - time
   - RTC
