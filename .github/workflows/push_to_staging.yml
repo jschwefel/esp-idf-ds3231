@@ -19,4 +19,3 @@ jobs:
           name: esp-idf-ds3231
           api_token: ${{ secrets.ESP_RESGISTRY_TOKEN }}
           skip_pre_release: yes
-          dry_run: yes
