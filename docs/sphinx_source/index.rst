@@ -3,9 +3,9 @@
    You can adapt this file completely to your liking, but it should at least
    contain the root `toctree` directive.
 
-============================
-esp-idf-ds3221 Documentation
-============================
+==============
+esp-idf-ds3221
+==============
 
 esp-idf-ds3231 is a component for the esp-idf. The component abstracts all the features in to get/set functions. 
 The component is 100% feature complete. All time keeping, alarm and control function are part of the comoment, 
@@ -70,11 +70,12 @@ The esp-idf-ds3231 component provides two methof of Initialization:
 
 Use method 1 if the DS3231 is the only I2C device conneced to that I2C bus, otherwise use method 2.
 
-
-
+=============
+API Reference
+=============
 
 .. toctree::
-   :maxdepth: 1
+   :maxdepth: 2
    :caption: Contents:
 
 .. doxygenindex::

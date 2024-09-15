@@ -6,7 +6,7 @@ on:
 jobs:
   upload_components:
     runs-on: ubuntu-latest
-    environment: Staging
+    environment: Prod
     steps:
       - uses: actions/checkout@v4
         with:
