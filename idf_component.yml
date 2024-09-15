@@ -7,7 +7,7 @@ dependencies:
 version: "0.9.1"
 maintainers:
   - Jason M Schwefel <jason.schwefel78@gmail.com>
-description: "An esp-idf component for the Analog Devices (Maxim Integrated) DS3231 RTC chip/module."
+description: "DO NOT USE YET - An esp-idf component for the Analog Devices (Maxim Integrated) DS3231 RTC chip/module."
 license: "MIT"
 url: "https://github.com/jschwefel/esp-idf-ds3231"
 repository: "https://github.com/jschwefel/esp-idf-ds3231"
