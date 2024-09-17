@@ -24,5 +24,5 @@ void app_main(void) {
     now = ds3231_time_unix_get(rtc_handle);
     localtime_r(&now, &timeinfo);
     strftime(strftime_buf, sizeof(strftime_buf), "%c", &timeinfo);
-    printf("The current time from the DS3231 RTC moldue is: %s\n", strftime_buf);
+    printf("The current time from the DS3231 RTC module is: %s\n", strftime_buf);
 }
