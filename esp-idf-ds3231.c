@@ -34,7 +34,7 @@
 #define RTC_I2C_ADDRESS 0x68
 #define RTC_DATA_LENGTH 0x13
 
-enum flag_bitmask_e {
+enum rtc_flag_bitmask_e {
     RTC_BITMASK_OSCILLATOR_ENABLE = 0b10000000,
     RTC_BITMASK_BATTERY_BACKED = 0b01000000,
     RTC_BITMASK_CONVERT_TEMPERATURE = 0b00100000,
@@ -150,12 +150,12 @@ typedef union {
 
 static const char* TAG = "esp-idf-ds3231";
 
-static QueueHandle_t alarm_event_queue = NULL;
-static TaskHandle_t isr_task_handle = NULL;
+static QueueHandle_t ds3231_alarm_event_queue = NULL;
+static TaskHandle_t ds3231_isr_task_handle = NULL;
 
 uint8_t convert_to_bcd(uint8_t value);
 static const char* byte_to_binary(int x);
-esp_err_t set_flag(rtc_handle_t* rtc_handle, bool setEnabled, bool isUpper, enum flag_bitmask_e bitmask);
+esp_err_t set_flag(rtc_handle_t* rtc_handle, bool setEnabled, bool isUpper, enum rtc_flag_bitmask_e bitmask);
 
 rtc_handle_t* ds3231_init_full(gpio_num_t SCL, gpio_num_t SDA) {
     esp_err_t err;
@@ -679,7 +679,7 @@ static const char* byte_to_binary(int x) {
     return b;
 }
 
-esp_err_t set_flag(rtc_handle_t* rtc_handle, bool setEnabled, bool isUpper, enum flag_bitmask_e bitmask) {
+esp_err_t set_flag(rtc_handle_t* rtc_handle, bool setEnabled, bool isUpper, enum rtc_flag_bitmask_e bitmask) {
     uint8_t* data_rd = (uint8_t*)malloc(RTC_DATA_LENGTH);
     if (data_rd == NULL) {
         esp_backtrace_print(6);
@@ -882,7 +882,7 @@ uint8_t convert_to_bcd(uint8_t value) {
     return tens | ones;
 }
 
-enum rtc_alarm_rate_e get_alarm_rate(rtc_handle_t* rtc_handle, uint8_t alarm_number) {
+enum rtc_alarm_rate_e ds3231_get_alarm_rate(rtc_handle_t* rtc_handle, uint8_t alarm_number) {
     uint8_t* data_rd = (uint8_t*)malloc(RTC_DATA_LENGTH);
     if (data_rd == NULL) {
         esp_backtrace_print(6);
@@ -910,7 +910,7 @@ enum rtc_alarm_rate_e get_alarm_rate(rtc_handle_t* rtc_handle, uint8_t alarm_num
     return RTC_ALARM_MATCH_INVALID;
 }
 
-esp_err_t set_alarm_rate(rtc_handle_t* rtc_handle, uint8_t alarm_number, enum rtc_alarm_rate_e alarm_rate) {
+esp_err_t ds3231_set_alarm_rate(rtc_handle_t* rtc_handle, uint8_t alarm_number, enum rtc_alarm_rate_e alarm_rate) {
     uint8_t* data_rd = (uint8_t*)malloc(RTC_DATA_LENGTH);
     if (data_rd == NULL) {
         esp_backtrace_print(6);
@@ -939,31 +939,29 @@ esp_err_t set_alarm_rate(rtc_handle_t* rtc_handle, uint8_t alarm_number, enum rt
 }
 
 esp_err_t ds3231_alarm1_rate_set(rtc_handle_t* rtc_handle, enum rtc_alarm_rate_e alarm_rate) {
-    return set_alarm_rate(rtc_handle, 1, alarm_rate);
+    return ds3231_set_alarm_rate(rtc_handle, 1, alarm_rate);
 }
 
 esp_err_t ds3231_alarm2_rate_set(rtc_handle_t* rtc_handle, enum rtc_alarm_rate_e alarm_rate) {
-    return set_alarm_rate(rtc_handle, 2, alarm_rate);
+    return ds3231_set_alarm_rate(rtc_handle, 2, alarm_rate);
 }
 
 enum rtc_alarm_rate_e ds3231_alarm1_rate_get(rtc_handle_t* rtc_handle) {
-    return get_alarm_rate(rtc_handle, 1);
+    return ds3231_get_alarm_rate(rtc_handle, 1);
 }
 
 enum rtc_alarm_rate_e ds3231_alarm2_rate_get(rtc_handle_t* rtc_handle) {
-    return get_alarm_rate(rtc_handle, 2);
+    return ds3231_get_alarm_rate(rtc_handle, 2);
 }
 
-static void IRAM_ATTR gpio_isr_handler(void* arg) {
-    xQueueSendFromISR(alarm_event_queue, arg, NULL);
+static void IRAM_ATTR ds3231_alarm_interrupt_handler(void* arg) {
+    xQueueSendFromISR(ds3231_alarm_event_queue, arg, NULL);
 }
 
-static void gpio_task_example(void* arg) {
+static void ds3231_alarm_interrupt_task(void* arg) {
     rtc_alarm_isr_t* isr = arg;
     while (true) {
-        if (xQueueReceive(alarm_event_queue, NULL, portMAX_DELAY)) {
-            // printf("GPIO %d was pressed. The state is %d\n", 6, gpio_get_level(6));
-            // ESP_LOGI(TAG, "ISR Addr: %lu", (uint32_t)isr->isr_handler);
+        if (xQueueReceive(ds3231_alarm_event_queue, NULL, portMAX_DELAY)) {
             void (*user_isr)(void*);
             user_isr = isr->isr_handler;
             user_isr(isr->params);
@@ -984,8 +982,8 @@ static void gpio_task_example(void* arg) {
 }
 
 esp_err_t ds3231_alarm_isr_delete(rtc_handle_t* rtc_handle, gpio_num_t INT) {
-    vTaskDelete(isr_task_handle);
-    return gpio_isr_handler_remove(INT);
+    vTaskDelete(ds3231_isr_task_handle);
+    return ds3231_remove_alarm_interrupt_handler(INT);
 }
 esp_err_t ds3231_alarm_isr_create(rtc_handle_t* rtc_handle, gpio_num_t INT, gpio_isr_t isr, void* params) {
     // Configure INT pin on ESP
@@ -997,9 +995,9 @@ esp_err_t ds3231_alarm_isr_create(rtc_handle_t* rtc_handle, gpio_num_t INT, gpio
                                            .pin_bit_mask = (uint64_t)1 << INT };
     gpio_config(&interrupt_pin_enable);
 
-    // alarm_event_queue = xQueueCreate(10, sizeof(rtc_alarm_isr_t*));
-    alarm_event_queue = xQueueCreate(10, 0);
-    if (alarm_event_queue == NULL) {
+    // ds3231_alarm_event_queue = xQueueCreate(10, sizeof(rtc_alarm_isr_t*));
+    ds3231_alarm_event_queue = xQueueCreate(10, 0);
+    if (ds3231_alarm_event_queue == NULL) {
         ESP_LOGE(TAG, "Alarm queue has not been created. Alarms will not trigger an interrupt.");
     }
 
@@ -1014,14 +1012,15 @@ esp_err_t ds3231_alarm_isr_create(rtc_handle_t* rtc_handle, gpio_num_t INT, gpio
     isr_params->params = params;
 
     // TODO Adjust the stack size
-    BaseType_t xReturned = xTaskCreate(gpio_task_example, "gpio_task_example", 4096, isr_params, 10, &isr_task_handle);
+    BaseType_t xReturned =
+        xTaskCreate(ds3231_alarm_interrupt_task, "ds3231_alarm_interrupt_task", 4096, isr_params, 10, &ds3231_isr_task_handle);
     if (xReturned != pdPASS) {
         ESP_LOGE(TAG, "xTaskCreate failed to create ISR task.");
         return ESP_FAIL;
     }
 
-    gpio_install_isr_service(1);
-    esp_err_t err = gpio_isr_handler_add(INT, gpio_isr_handler, NULL);
+    gpio_install_isr_service(ESP_INTR_FLAG_LEVEL1);
+    esp_err_t err = gpio_isr_handler_add(INT, ds3231_alarm_interrupt_handler, NULL);
 
     return err;
 }
