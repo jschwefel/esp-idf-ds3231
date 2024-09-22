@@ -1000,7 +1000,7 @@ esp_err_t ds3231_alarm_isr_create(rtc_handle_t* rtc_handle, gpio_num_t INT, gpio
     // alarm_event_queue = xQueueCreate(10, sizeof(rtc_alarm_isr_t*));
     alarm_event_queue = xQueueCreate(10, 0);
     if (alarm_event_queue == NULL) {
-        ESP_LOGE("DANGER", "Danger Will Robinson. DANGER!");
+        ESP_LOGE(TAG, "Alarm queue has not been created. Alarms will not trigger an interrupt.");
     }
 
     rtc_alarm_isr_t* isr_params = (rtc_alarm_isr_t*)malloc(sizeof(rtc_alarm_isr_t));
