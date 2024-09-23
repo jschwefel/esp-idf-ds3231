@@ -23,8 +23,9 @@ module.</figcaption>
 ## Getting Started
 
 In and ESP-IDF terminal run:
-`idf.py add-dependency "jschwefel/esp-idf-ds3231^1.0.0"` \###
-Prerequisites
+`idf.py add-dependency "jschwefel/esp-idf-ds3231"` 
+
+### Prerequisites
 
 The things you need before installing the software.
 
